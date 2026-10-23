@@ -81,6 +81,11 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--lamp);outline-o
       <div class="window" id="w-route" aria-live="polite">歩いて帰る</div>
       <button class="lock" id="lock-route" aria-pressed="false">固定</button>
     </div>
+    <div class="reel">
+      <span class="reel-label">誰が払う</span>
+      <div class="window" id="w-pay" aria-live="polite">割り勘</div>
+      <button class="lock" id="lock-pay" aria-pressed="false">固定</button>
+    </div>
     <button class="spin" id="spin">回す</button>
     <p class="note"><b>飲んだら車はナシ。</b>飲みが出たときは車を自動で外します。</p>
   </div>
@@ -95,21 +100,30 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--lamp);outline-o
     <h2>どう帰る</h2>
     <div class="chips" id="chips-route"></div>
     <form class="add" id="add-route"><input id="in-route" placeholder="例：電車で帰る" maxlength="20"><button>追加</button></form>
+  </section>
+
+  <section>
+    <h2>誰が払う</h2>
+    <div class="chips" id="chips-pay"></div>
+    <form class="add" id="add-pay"><input id="in-pay" placeholder="例：先輩" maxlength="20"><button>追加</button></form>
     <p class="hint">タップで今日は除外。長押しで削除（追加したものだけ）。</p>
   </section>
 </div>
 
 <script>
+const KINDS=["plan","route","pay"];
 const DEFAULT={
   plan:[{t:"飲んで帰る",drink:true},{t:"ご飯だけ食べて帰る"},{t:"遊んで帰る"},{t:"家でご飯"}],
-  route:[{t:"歩いて帰る"},{t:"タクシー"},{t:"車で帰る",car:true}]
+  route:[{t:"歩いて帰る"},{t:"タクシー"},{t:"車で帰る",car:true}],
+  pay:[{t:"自分のおごり"},{t:"割り勘"},{t:"おごってもらう"},{t:"じゃんけんで負けた人"}]
 };
 let state;
 try{state=JSON.parse(localStorage.getItem("kaerimichi"))}catch(e){}
-if(!state||!state.plan||!state.route){state=JSON.parse(JSON.stringify(DEFAULT));}
-state.plan.forEach(o=>o.on??=true);state.route.forEach(o=>o.on??=true);
+if(!state||typeof state!=="object")state={};
+KINDS.forEach(k=>{if(!Array.isArray(state[k]))state[k]=JSON.parse(JSON.stringify(DEFAULT[k]));state[k].forEach(o=>o.on??=true)});
 const save=()=>{try{localStorage.setItem("kaerimichi",JSON.stringify(state))}catch(e){}};
-const locks={plan:false,route:false};
+const locks={plan:false,route:false,pay:false};
+const cur={plan:null,route:null,pay:null};
 const $=id=>document.getElementById(id);
 
 function render(kind){
@@ -118,17 +132,16 @@ function render(kind){
     const b=document.createElement("button");
     b.className="chip";b.textContent=o.t;b.setAttribute("aria-pressed",o.on);
     b.onclick=()=>{o.on=!o.on;save();render(kind)};
-    let timer;
-    const isDefault=DEFAULT[kind].some(d=>d.t===o.t);
-    if(!isDefault){
-      b.addEventListener("pointerdown",()=>{timer=setTimeout(()=>{state[kind].splice(i,1);save();render(kind);timer=null},600)});
-      ["pointerup","pointerleave"].forEach(ev=>b.addEventListener(ev,()=>clearTimeout(timer)));
+    if(!DEFAULT[kind].some(d=>d.t===o.t)){
+      let timer;
+      b.addEventListener("pointerdown",()=>{timer=setTimeout(()=>{state[kind].splice(i,1);save();render(kind)},600)});
+      ["pointerup","pointerleave","pointercancel"].forEach(ev=>b.addEventListener(ev,()=>clearTimeout(timer)));
       b.oncontextmenu=e=>e.preventDefault();
     }
     box.appendChild(b);
   });
 }
-["plan","route"].forEach(kind=>{
+KINDS.forEach(kind=>{
   render(kind);
   $("add-"+kind).addEventListener("submit",e=>{
     e.preventDefault();const v=$("in-"+kind).value.trim();if(!v)return;
@@ -145,37 +158,40 @@ function render(kind){
 });
 
 const pick=a=>a[Math.floor(Math.random()*a.length)];
-const cur={plan:null,route:null};
 const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
-
+const STEPS={plan:14,route:20,pay:26};
 function animate(kind,pool,final){
   return new Promise(res=>{
     const w=$("w-"+kind);
     if(reduce){w.textContent=final.t;return res()}
-    let n=0;const total=kind==="plan"?14:20;
+    let n=0;
     const tick=()=>{
       w.textContent=pick(pool).t;n++;
-      if(n<total)setTimeout(tick,40+n*n*0.6);else{w.textContent=final.t;res()}
+      if(n<STEPS[kind])setTimeout(tick,40+n*n*0.5);else{w.textContent=final.t;res()}
     };tick();
   });
 }
 
 $("spin").onclick=async()=>{
   const btn=$("spin");
-  const plans=state.plan.filter(o=>o.on);
-  let routes=state.route.filter(o=>o.on);
-  if(!plans.length||!routes.length){$("w-plan").textContent="選択肢を1つ以上オンにしてね";return}
+  const pools={};
+  KINDS.forEach(k=>pools[k]=state[k].filter(o=>o.on));
+  if(KINDS.some(k=>!pools[k].length)){$("w-plan").textContent="各項目を1つ以上オンにしてね";return}
   btn.disabled=true;
-  const plan=locks.plan&&cur.plan?cur.plan:pick(plans);
+  const keep=k=>locks[k]&&cur[k];
+  const plan=keep("plan")?cur.plan:pick(pools.plan);
+  let routes=pools.route;
   if(plan.drink)routes=routes.filter(o=>!o.car);
   if(!routes.length)routes=[{t:"歩くかタクシーで"}];
-  let route=locks.route&&cur.route?cur.route:pick(routes);
+  let route=keep("route")?cur.route:pick(routes);
   if(plan.drink&&route.car)route=pick(routes);
+  const pay=keep("pay")?cur.pay:pick(pools.pay);
   const jobs=[];
-  if(!(locks.plan&&cur.plan))jobs.push(animate("plan",plans,plan));
-  if(!(locks.route&&cur.route)||route!==cur.route)jobs.push(animate("route",routes,route));
+  if(!keep("plan"))jobs.push(animate("plan",pools.plan,plan));
+  if(!keep("route")||route!==cur.route)jobs.push(animate("route",routes,route));
+  if(!keep("pay"))jobs.push(animate("pay",pools.pay,pay));
   await Promise.all(jobs);
-  cur.plan=plan;cur.route=route;btn.disabled=false;
+  cur.plan=plan;cur.route=route;cur.pay=pay;btn.disabled=false;
 };
 </script>
 <script>
