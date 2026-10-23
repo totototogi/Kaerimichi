@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#14183a">
+<meta name="theme-color" content="#0d1024">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="カエラナイ">
@@ -16,128 +16,363 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
 <style>
-html{-webkit-text-size-adjust:100%}
-body{margin:0;padding-top:max(20px,env(safe-area-inset-top,0px))!important}
-button{-webkit-tap-highlight-color:transparent}
-/* Layout: one narrow column, two "reels" like a station departure board, controls below */
+/* Layout: パチスロ筐体。上に電飾タイトル、3本リール＋右にレバー、下にストップボタン。設定は筐体の下 */
 :root{
-  --bg:#eef0f6; --panel:#ffffff; --ink:#1d2340; --muted:#646b8a; --line:#d6d9e6;
-  --lamp:#e8902a; --lamp-ink:#2a1600; --stop:#c43b3b;
+  --bg:#0d1024; --cab:#1a1f45; --cab-edge:#2e3778; --ink:#eef0fb; --muted:#9aa1c4;
+  --reel:#f5f0e3; --reel-ink:#1a1d33; --lamp:#f2a547; --lamp-dim:#5a4325; --stop:#e5484d;
   --display:"Dela Gothic One","Hiragino Sans","Yu Gothic",sans-serif;
   --body:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic",system-ui,sans-serif;
+  color-scheme:dark;
 }
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#12162a; --panel:#1b2140; --ink:#eef0fb; --muted:#9aa1c4; --line:#2e3560;
-  --lamp:#f2a547; --lamp-ink:#2a1600; --stop:#ef7272; color-scheme:dark}}
-:root[data-theme="dark"]{
-  --bg:#12162a; --panel:#1b2140; --ink:#eef0fb; --muted:#9aa1c4; --line:#2e3560;
-  --lamp:#f2a547; --lamp-ink:#2a1600; --stop:#ef7272; color-scheme:dark}
 *{box-sizing:border-box}
-body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.6;
-  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
-.wrap{max-width:460px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
-h1{font-family:var(--display);font-weight:400;font-size:1.7rem;margin:0;letter-spacing:.02em;text-wrap:balance}
-.sub{margin:2px 0 0;color:var(--muted);font-size:.9rem}
-.board{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;display:grid;gap:12px}
-.reel{display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px}
-.reel-label{font-size:.75rem;letter-spacing:.12em;color:var(--muted);grid-column:1/-1}
-.window{min-width:0;border-radius:10px;background:var(--bg);border:1px solid var(--line);padding:14px 14px;
-  font-family:var(--display);font-size:1.45rem;line-height:1.3;min-height:3.3rem;display:flex;align-items:center}
-.window.locked{border-color:var(--lamp);box-shadow:inset 0 0 0 1px var(--lamp)}
-.lock{border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:10px;padding:10px 12px;font:inherit;font-size:.8rem;cursor:pointer;min-height:3.3rem}
-.lock[aria-pressed="true"]{background:var(--lamp);color:var(--lamp-ink);border-color:var(--lamp)}
-.spin{font-family:var(--display);font-size:1.3rem;background:var(--lamp);color:var(--lamp-ink);border:0;border-radius:12px;padding:16px;cursor:pointer;width:100%}
-.spin:active{transform:translateY(1px)}
-.note{font-size:.82rem;color:var(--muted);margin:0}
-.note b{color:var(--stop)}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:max(16px,env(safe-area-inset-top,0px)) 40px}
+button{-webkit-tap-highlight-color:transparent;font:inherit}
+button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--lamp);outline-offset:2px}
+.wrap{max-width:440px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+
+/* 筐体 */
+.cab{background:linear-gradient(180deg,var(--cab-edge),var(--cab) 18%,var(--cab) 82%,#141836);
+  border-radius:22px;padding:14px 12px 16px;border:1px solid var(--cab-edge);
+  box-shadow:0 10px 30px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.08)}
+.marquee{border-radius:14px;background:#10132e;padding:10px 12px 8px;text-align:center;position:relative}
+.marquee h1{margin:0;font-family:var(--display);font-weight:400;font-size:1.6rem;letter-spacing:.06em;color:var(--lamp);
+  text-shadow:0 0 12px rgba(242,165,71,.55)}
+.marquee p{margin:0;font-size:.78rem;color:var(--muted);letter-spacing:.08em}
+.lights{display:flex;justify-content:space-between;margin:6px 4px 0}
+.lights i{width:7px;height:7px;border-radius:50%;background:var(--lamp-dim)}
+.cab.running .lights i{animation:chase 1s linear infinite}
+.cab.win .lights i{animation:flash .25s steps(2) 6}
+@keyframes chase{0%,60%,100%{background:var(--lamp-dim)}20%{background:var(--lamp);box-shadow:0 0 6px var(--lamp)}}
+@keyframes flash{0%{background:var(--lamp);box-shadow:0 0 6px var(--lamp)}100%{background:var(--lamp-dim)}}
+
+.machine{display:grid;grid-template-columns:30px 1fr;gap:8px;margin-top:14px;align-items:stretch}
+.reels{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;min-width:0}
+.col{display:flex;flex-direction:column;gap:8px;min-width:0}
+.col-label{font-size:.72rem;letter-spacing:.1em;color:var(--muted);text-align:center}
+.reel{position:relative;height:156px;border-radius:10px;overflow:hidden;background:var(--reel);
+  box-shadow:inset 0 0 0 2px #0b0e22,inset 0 10px 14px rgba(0,0,0,.25),inset 0 -10px 14px rgba(0,0,0,.25);cursor:pointer;
+  user-select:none;-webkit-user-select:none;touch-action:manipulation}
+.reel .row{position:absolute;left:0;right:0;height:52px;display:flex;align-items:center;justify-content:center;text-align:center;
+  padding:0 6px;color:var(--reel-ink);font-weight:700;font-size:.92rem;line-height:1.25;will-change:transform}
+.reel .row span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-all}
+.reel::before,.reel::after{content:"";position:absolute;left:0;right:0;height:52px;z-index:2;pointer-events:none}
+.reel::before{top:0;background:linear-gradient(rgba(26,29,51,.55),rgba(26,29,51,.15))}
+.reel::after{bottom:0;background:linear-gradient(rgba(26,29,51,.15),rgba(26,29,51,.55))}
+.payline{position:absolute;left:0;right:0;top:51px;height:54px;border-block:2px solid var(--stop);z-index:3;pointer-events:none;opacity:.85}
+.reel.locked{box-shadow:inset 0 0 0 3px var(--lamp),inset 0 10px 14px rgba(0,0,0,.25),inset 0 -10px 14px rgba(0,0,0,.25)}
+.reel .empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:8px;
+  font-size:.75rem;color:#6b6f88;z-index:1}
+
+.stopbtn{height:46px;border-radius:999px;border:0;cursor:pointer;font-family:var(--display);font-size:.85rem;letter-spacing:.06em;
+  background:#2a3060;color:var(--muted);box-shadow:inset 0 -3px 0 rgba(0,0,0,.35)}
+.stopbtn.live{background:var(--stop);color:#fff;box-shadow:0 0 10px rgba(229,72,77,.6),inset 0 -3px 0 rgba(0,0,0,.25)}
+.stopbtn.live:active{transform:translateY(2px);box-shadow:inset 0 -1px 0 rgba(0,0,0,.25)}
+.stopbtn[aria-pressed="true"]{background:var(--lamp);color:#2a1600}
+.stopbtn:disabled{opacity:.45;cursor:default}
+
+/* レバー */
+.lever{position:relative;border-radius:23px;background:#0f1230;box-shadow:inset 0 0 0 1px var(--cab-edge);cursor:grab;touch-action:none;
+  user-select:none;-webkit-user-select:none;margin-top:40px;height:120px;width:30px}
+.lever .slot{position:absolute;left:50%;top:14px;bottom:14px;width:4px;margin-left:-2px;border-radius:3px;background:#05061a}
+.lever .stick{position:absolute;left:50%;top:16px;width:5px;margin-left:-2.5px;height:20px;border-radius:4px;background:linear-gradient(90deg,#9aa1c4,#e8eaf6,#7d84ab);transform-origin:top}
+.lever .knob{position:absolute;left:50%;top:4px;width:24px;height:24px;margin-left:-12px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#ff9d9f,var(--stop) 45%,#8f1d22);box-shadow:0 4px 10px rgba(0,0,0,.5)}
+.lever.busy{cursor:default}
+.lever.busy .knob{filter:saturate(.4) brightness(.8)}
+.lever-label{font-size:.55rem;color:var(--muted);text-align:center;margin-top:6px;letter-spacing:.08em}
+
+.result{margin-top:14px;min-height:2.6rem;border-radius:12px;background:#10132e;padding:8px 12px;font-size:.9rem;text-align:center;color:var(--muted)}
+.result b{color:var(--ink)}
+.result.alert{color:var(--stop)}
+.sub-actions{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap}
+.speed{display:flex;align-items:center;gap:8px;font-size:.78rem;color:var(--muted)}
+.linkbtn{background:none;border:0;color:var(--muted);text-decoration:underline;font-size:.8rem;cursor:pointer;padding:4px}
+
+/* 設定 */
 section h2{font-size:.95rem;margin:0 0 8px;font-weight:700}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
-.chip{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:999px;padding:6px 12px;font:inherit;font-size:.88rem;cursor:pointer}
+.chip{border:1px solid var(--cab-edge);background:var(--cab);color:var(--ink);border-radius:999px;padding:6px 12px;font-size:.88rem;cursor:pointer}
 .chip[aria-pressed="false"]{color:var(--muted);text-decoration:line-through;background:transparent}
+.speed .chip{padding:3px 10px;font-size:.78rem}
+.speed .chip[aria-pressed="false"]{text-decoration:none}
+.speed .chip[aria-pressed="true"]{background:var(--lamp);color:#2a1600;border-color:var(--lamp)}
+.empty-note{font-size:.85rem;color:var(--muted)}
 .add{display:flex;gap:8px;margin-top:10px}
-.add input{flex:1;min-width:0;font:inherit;padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
-.add button{font:inherit;padding:8px 14px;border-radius:8px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer}
-.hint{font-size:.8rem;color:var(--muted);margin:6px 0 0}
-button:focus-visible,input:focus-visible{outline:2px solid var(--lamp);outline-offset:2px}
-@media (prefers-reduced-motion: reduce){.spin:active{transform:none}}
+.add input{flex:1;min-width:0;font:inherit;padding:8px 10px;border-radius:8px;border:1px solid var(--cab-edge);background:var(--cab);color:var(--ink)}
+.add button{padding:8px 14px;border-radius:8px;border:1px solid var(--cab-edge);background:transparent;color:var(--ink);cursor:pointer}
+.hint{font-size:.8rem;color:var(--muted);margin:0}
+@media (prefers-reduced-motion: reduce){.cab.running .lights i,.cab.win .lights i{animation:none}}
 </style>
-
 </head>
 <body>
 <div class="wrap">
-  <header>
-    <h1>運命の分岐点</h1>
-    <p class="sub">今日の過ごし方と帰り方、迷ったら回すだけ。</p>
-  </header>
+  <div class="cab" id="cab">
+    <div class="marquee">
+      <h1>運命の分岐点</h1>
+      <p>今日は帰りたく無い</p>
+      <div class="lights" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    </div>
 
-  <div class="board">
-    <div class="reel">
-      <span class="reel-label">どう過ごす</span>
-      <div class="window" id="w-plan" aria-live="polite">飲んで帰る</div>
-      <button class="lock" id="lock-plan" aria-pressed="false">固定</button>
+    <div class="machine">
+      <div>
+        <div class="lever" id="lever" role="button" tabindex="0" aria-label="レバーを引いて回す">
+          <div class="slot"></div><div class="stick" id="stick"></div><div class="knob" id="knob"></div>
+        </div>
+        <div class="lever-label">LEVER</div>
+      </div>
+      <div class="reels">
+        <div class="col">
+          <span class="col-label">やること</span>
+          <div class="reel" id="r-plan" role="button" tabindex="0" aria-label="やることのリール"><div class="payline"></div></div>
+          <button class="stopbtn" id="b-plan">固定</button>
+        </div>
+        <div class="col">
+          <span class="col-label">帰り方</span>
+          <div class="reel" id="r-route" role="button" tabindex="0" aria-label="帰り方のリール"><div class="payline"></div></div>
+          <button class="stopbtn" id="b-route">固定</button>
+        </div>
+        <div class="col">
+          <span class="col-label">支払い</span>
+          <div class="reel" id="r-pay" role="button" tabindex="0" aria-label="支払いのリール"><div class="payline"></div></div>
+          <button class="stopbtn" id="b-pay">固定</button>
+        </div>
+      </div>
     </div>
-    <div class="reel">
-      <span class="reel-label">どう帰る</span>
-      <div class="window" id="w-route" aria-live="polite">歩いて帰る</div>
-      <button class="lock" id="lock-route" aria-pressed="false">固定</button>
+
+    <div class="result" id="result" aria-live="polite">レバーを下に引いてスタート</div>
+    <div class="sub-actions">
+      <div class="speed"><span>速さ</span><div class="chips" id="speed"></div></div>
+      <button class="linkbtn" id="stopall" hidden>まとめて止める</button>
     </div>
-    <div class="reel">
-      <span class="reel-label">誰が払う</span>
-      <div class="window" id="w-pay" aria-live="polite">割り勘</div>
-      <button class="lock" id="lock-pay" aria-pressed="false">固定</button>
-    </div>
-    <button class="spin" id="spin">回す</button>
-    <p class="note"><b>飲んだら車はナシ。</b>飲みが出たときは車を自動で外します。</p>
   </div>
 
+  <p class="hint">回っているリールかSTOPを押して目押し。止まったあとは「固定」で次も同じ結果をキープ。<b style="color:var(--stop)">飲んだら車はナシ</b>（酒と車は同時に止まらない）。右から押すと……？</p>
+
   <section>
-    <h2>どう過ごす</h2>
+    <h2>やること</h2>
     <div class="chips" id="chips-plan"></div>
     <form class="add" id="add-plan"><input id="in-plan" placeholder="例：サウナ寄って帰る" maxlength="20"><button>追加</button></form>
   </section>
-
   <section>
-    <h2>どう帰る</h2>
+    <h2>帰り方</h2>
     <div class="chips" id="chips-route"></div>
     <form class="add" id="add-route"><input id="in-route" placeholder="例：電車で帰る" maxlength="20"><button>追加</button></form>
   </section>
-
   <section>
-    <h2>誰が払う</h2>
+    <h2>支払い</h2>
     <div class="chips" id="chips-pay"></div>
-    <form class="add" id="add-pay"><input id="in-pay" placeholder="例：先輩" maxlength="20"><button>追加</button></form>
-    <p class="hint">タップで今日は除外。長押しで削除（追加したものだけ）。</p>
+    <form class="add" id="add-pay"><input id="in-pay" placeholder="例：割り勘" maxlength="20"><button>追加</button></form>
+    <p class="hint" style="margin-top:8px">タップで今日は除外、長押しで削除。</p>
   </section>
 </div>
 
 <script>
 const KINDS=["plan","route","pay"];
-const DEFAULT={
-  plan:[{t:"飲んで帰る",drink:true},{t:"ご飯だけ食べて帰る"},{t:"遊んで帰る"},{t:"家でご飯"}],
-  route:[{t:"歩いて帰る"},{t:"タクシー"},{t:"車で帰る",car:true}],
-  pay:[{t:"自分のおごり"},{t:"割り勘"},{t:"おごってもらう"},{t:"じゃんけんで負けた人"}]
-};
+const ROW=52;
+const $=id=>document.getElementById(id);
+
+/* ---- 保存データ ---- */
 let state;
 try{state=JSON.parse(localStorage.getItem("kaerimichi"))}catch(e){}
 if(!state||typeof state!=="object")state={};
-KINDS.forEach(k=>{if(!Array.isArray(state[k]))state[k]=JSON.parse(JSON.stringify(DEFAULT[k]));state[k].forEach(o=>o.on??=true)});
+KINDS.forEach(k=>{if(!Array.isArray(state[k]))state[k]=[];state[k].forEach(o=>o.on??=true)});
 const save=()=>{try{localStorage.setItem("kaerimichi",JSON.stringify(state))}catch(e){}};
-const locks={plan:false,route:false,pay:false};
-const cur={plan:null,route:null,pay:null};
-const $=id=>document.getElementById(id);
 
+const SPEEDS={slow:{ms:230,t:"ゆっくり"},normal:{ms:140,t:"ふつう"},fast:{ms:85,t:"はやい"}};
+let speed="normal";
+try{const v=localStorage.getItem("kaerimichi-speed");if(SPEEDS[v])speed=v}catch(e){}
+
+/* ---- リールの状態 ---- */
+const R={};
+KINDS.forEach(k=>{
+  const el=$("r-"+k);
+  const rows=[];
+  for(let j=0;j<5;j++){const d=document.createElement("div");d.className="row";d.innerHTML="<span></span>";el.appendChild(d);rows.push(d)}
+  const empty=document.createElement("div");empty.className="empty";el.appendChild(empty);
+  R[k]={el,rows,empty,pos:Math.random()*5,spinning:false,settling:null,result:null,locked:false,frozen:null};
+});
+
+function poolFor(k){return state[k].filter(o=>o.on)}
+let kaeranai=false; // 右から押したときの「帰らないモード」
+const fixed=k=>!R[k].spinning&&R[k].result;
+function forbidden(k,o){
+  if(k==="route"&&o.car&&fixed("plan")&&R.plan.result.drink)return true;   // 酒が出たら車は止まらない
+  if(k==="plan"&&o.drink&&fixed("route")&&R.route.result.car)return true;   // 車が出たら酒は止まらない
+  if(kaeranai&&(k==="plan"||k==="route")&&/帰/.test(o.t))return true;      // 帰らないモード
+  if(kaeranai&&k==="route"&&o.car)return true;
+  return false;
+}
+const mod=(n,m)=>((n%m)+m)%m;
+
+function draw(k){
+  const r=R[k],pool=(!r.spinning&&r.frozen)?r.frozen:poolFor(k);
+  if(!pool.length){
+    r.rows.forEach(d=>d.style.visibility="hidden");
+    r.empty.textContent=state[k].length?"1つ以上オンにしてね":"下から選択肢を追加";
+    r.empty.hidden=false;return;
+  }
+  r.empty.hidden=true;
+  const base=Math.floor(r.pos),frac=r.pos-base;
+  r.rows.forEach((d,j)=>{
+    const i=base+j-2;                       // 表示する項目番号
+    const y=(frac-(j-2))*ROW+ROW;           // 下向きに流れる
+    d.style.visibility="visible";
+    d.style.transform=`translateY(${y}px)`;
+    d.firstChild.textContent=pool[mod(i,pool.length)].t;
+  });
+}
+
+/* ---- アニメーション ---- */
+let last=performance.now();
+function frame(now){
+  const dt=Math.min(now-last,50);last=now;
+  KINDS.forEach(k=>{
+    const r=R[k];
+    if(r.spinning){r.pos+=dt/SPEEDS[speed].ms}
+    else if(r.settling){
+      const s=r.settling;s.t+=dt;const p=Math.min(s.t/s.dur,1);
+      r.pos=s.from+(s.to-s.from)*(1-Math.pow(1-p,3));
+      if(p>=1){r.pos=s.to;r.settling=null}
+    }
+    draw(k);
+  });
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+/* ---- 操作 ---- */
+const cab=$("cab"),result=$("result");
+const anySpinning=()=>KINDS.some(k=>R[k].spinning);
+
+function paintButtons(){
+  KINDS.forEach(k=>{
+    const r=R[k],b=$("b-"+k);
+    if(r.spinning){b.textContent="STOP";b.className="stopbtn live";b.removeAttribute("aria-pressed");b.disabled=false}
+    else{b.textContent="固定";b.className="stopbtn";b.setAttribute("aria-pressed",r.locked);b.disabled=!r.result}
+    r.el.classList.toggle("locked",r.locked&&!r.spinning);
+  });
+  $("lever").classList.toggle("busy",anySpinning());
+  $("stopall").hidden=!anySpinning();
+  cab.classList.toggle("running",anySpinning());
+}
+function start(k){
+  const r=R[k];
+  if(!poolFor(k).length)return false;
+  r.result=null;r.frozen=null;r.locked=false;r.settling=null;r.spinning=true;return true;
+}
+function stop(k){
+  const r=R[k];if(!r.spinning)return;
+  r.spinning=false;
+  // 目押し：ペイラインに一番近いものに止まる
+  let target=Math.round(r.pos);
+  const pool=poolFor(k);r.frozen=pool;
+  // 止められない絵柄なら、止められるところまで滑る
+  let slip=0;
+  if(pool.length&&!pool.every(o=>forbidden(k,o))){
+    while(forbidden(k,pool[mod(target+slip,pool.length)]))slip++;
+  }
+  target+=slip;
+  r.settling={from:r.pos,to:target,t:0,dur:140+slip*110};
+  r.result=pool.length?pool[mod(target,pool.length)]:null;
+  if(k==="pay"&&R.plan.spinning&&R.route.spinning){
+    kaeranai=true;
+    result.className="result alert";result.innerHTML="<b>右から押した…</b> 今夜は帰らせない";
+  }
+  paintButtons();
+  if(!anySpinning())finish();
+}
+function finish(){
+  const parts=KINDS.map(k=>R[k].result?R[k].result.t:"—");
+  result.className="result";
+  result.innerHTML=(kaeranai?"帰らないモード：":"")+"<b>"+parts.map(esc).join("</b> × <b>")+"</b>";
+  cab.classList.remove("win");void cab.offsetWidth;cab.classList.add("win");
+}
+const esc=s=>s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function pull(){
+  if(anySpinning())return;
+  const missing=KINDS.filter(k=>!(R[k].locked&&R[k].result)&&!poolFor(k).length);
+  if(missing.length){result.className="result alert";result.textContent="選択肢を追加してから回してね";return}
+  let started=false;
+  KINDS.forEach(k=>{if(!(R[k].locked&&R[k].result))started=start(k)||started});
+  if(!started){result.className="result";result.textContent="全部固定中。固定を外してね";return}
+  kaeranai=false;
+  result.className="result";result.textContent="回ってる！リールかSTOPで止めて";
+  paintButtons();
+}
+
+KINDS.forEach(k=>{
+  $("b-"+k).onclick=()=>{
+    const r=R[k];
+    if(r.spinning){stop(k);return}
+    if(!r.result)return;
+    r.locked=!r.locked;paintButtons();
+  };
+  const el=R[k].el;
+  el.addEventListener("pointerdown",()=>stop(k));
+  el.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();stop(k)}};
+});
+$("stopall").onclick=()=>KINDS.forEach(stop);
+
+/* ---- レバー ---- */
+(function(){
+  const lever=$("lever"),knob=$("knob"),stick=$("stick");
+  const MAX=60;let startY=null,dy=0,t0=0;
+  const set=v=>{knob.style.transform=`translateY(${v}px)`;stick.style.height=(20+v)+"px"};
+  const spring=()=>{
+    knob.style.transition=stick.style.transition="transform .25s cubic-bezier(.3,1.6,.5,1),height .25s cubic-bezier(.3,1.6,.5,1)";
+    set(0);setTimeout(()=>{knob.style.transition=stick.style.transition=""},260);
+  };
+  lever.addEventListener("pointerdown",e=>{
+    if(anySpinning())return;
+    startY=e.clientY;dy=0;t0=performance.now();lever.setPointerCapture(e.pointerId);
+    knob.style.transition=stick.style.transition="";
+  });
+  lever.addEventListener("pointermove",e=>{
+    if(startY===null)return;
+    dy=Math.max(0,Math.min(MAX,e.clientY-startY));set(dy);
+  });
+  const end=()=>{
+    if(startY===null)return;
+    const tap=dy<6&&performance.now()-t0<300;
+    startY=null;
+    if(dy>MAX*0.6){spring();pull()}
+    else if(tap){set(MAX);setTimeout(()=>{spring();pull()},120)}
+    else spring();
+  };
+  lever.addEventListener("pointerup",end);
+  lever.addEventListener("pointercancel",()=>{startY=null;spring()});
+  lever.onkeydown=e=>{if((e.key==="Enter"||e.key===" ")&&!anySpinning()){e.preventDefault();set(MAX);setTimeout(()=>{spring();pull()},120)}};
+})();
+
+/* ---- 速さ ---- */
+function renderSpeed(){
+  const box=$("speed");box.innerHTML="";
+  Object.entries(SPEEDS).forEach(([key,v])=>{
+    const b=document.createElement("button");
+    b.className="chip";b.textContent=v.t;b.setAttribute("aria-pressed",key===speed);
+    b.onclick=()=>{speed=key;try{localStorage.setItem("kaerimichi-speed",key)}catch(e){}renderSpeed()};
+    box.appendChild(b);
+  });
+}
+renderSpeed();
+
+/* ---- 選択肢の編集 ---- */
 function render(kind){
   const box=$("chips-"+kind);box.innerHTML="";
+  if(!state[kind].length){const e=document.createElement("span");e.className="empty-note";e.textContent="まだ選択肢がありません。下から追加してね";box.appendChild(e)}
   state[kind].forEach((o,i)=>{
     const b=document.createElement("button");
     b.className="chip";b.textContent=o.t;b.setAttribute("aria-pressed",o.on);
-    b.onclick=()=>{o.on=!o.on;save();render(kind)};
-    if(!DEFAULT[kind].some(d=>d.t===o.t)){
-      let timer;
-      b.addEventListener("pointerdown",()=>{timer=setTimeout(()=>{state[kind].splice(i,1);save();render(kind)},600)});
-      ["pointerup","pointerleave","pointercancel"].forEach(ev=>b.addEventListener(ev,()=>clearTimeout(timer)));
-      b.oncontextmenu=e=>e.preventDefault();
-    }
+    let timer,longed=false;
+    b.addEventListener("pointerdown",()=>{longed=false;timer=setTimeout(()=>{longed=true;state[kind].splice(i,1);save();render(kind)},600)});
+    ["pointerup","pointerleave","pointercancel"].forEach(ev=>b.addEventListener(ev,()=>clearTimeout(timer)));
+    b.oncontextmenu=e=>e.preventDefault();
+    b.onclick=()=>{if(longed)return;o.on=!o.on;save();render(kind)};
     box.appendChild(b);
   });
 }
@@ -146,53 +381,12 @@ KINDS.forEach(kind=>{
   $("add-"+kind).addEventListener("submit",e=>{
     e.preventDefault();const v=$("in-"+kind).value.trim();if(!v)return;
     const o={t:v,on:true};
-    if(kind==="plan"&&/飲|酒|ビール|バー|居酒屋/.test(v))o.drink=true;
+    if(kind==="plan"&&/飲|酒|ビール|バー|居酒屋|ハシゴ/.test(v))o.drink=true;
     if(kind==="route"&&/車|運転|バイク/.test(v))o.car=true;
     state[kind].push(o);$("in-"+kind).value="";save();render(kind);
   });
-  $("lock-"+kind).onclick=()=>{
-    locks[kind]=!locks[kind];
-    $("lock-"+kind).setAttribute("aria-pressed",locks[kind]);
-    $("w-"+kind).classList.toggle("locked",locks[kind]);
-  };
 });
-
-const pick=a=>a[Math.floor(Math.random()*a.length)];
-const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
-const STEPS={plan:14,route:20,pay:26};
-function animate(kind,pool,final){
-  return new Promise(res=>{
-    const w=$("w-"+kind);
-    if(reduce){w.textContent=final.t;return res()}
-    let n=0;
-    const tick=()=>{
-      w.textContent=pick(pool).t;n++;
-      if(n<STEPS[kind])setTimeout(tick,40+n*n*0.5);else{w.textContent=final.t;res()}
-    };tick();
-  });
-}
-
-$("spin").onclick=async()=>{
-  const btn=$("spin");
-  const pools={};
-  KINDS.forEach(k=>pools[k]=state[k].filter(o=>o.on));
-  if(KINDS.some(k=>!pools[k].length)){$("w-plan").textContent="各項目を1つ以上オンにしてね";return}
-  btn.disabled=true;
-  const keep=k=>locks[k]&&cur[k];
-  const plan=keep("plan")?cur.plan:pick(pools.plan);
-  let routes=pools.route;
-  if(plan.drink)routes=routes.filter(o=>!o.car);
-  if(!routes.length)routes=[{t:"歩くかタクシーで"}];
-  let route=keep("route")?cur.route:pick(routes);
-  if(plan.drink&&route.car)route=pick(routes);
-  const pay=keep("pay")?cur.pay:pick(pools.pay);
-  const jobs=[];
-  if(!keep("plan"))jobs.push(animate("plan",pools.plan,plan));
-  if(!keep("route")||route!==cur.route)jobs.push(animate("route",routes,route));
-  if(!keep("pay"))jobs.push(animate("pay",pools.pay,pay));
-  await Promise.all(jobs);
-  cur.plan=plan;cur.route=route;cur.pay=pay;btn.disabled=false;
-};
+paintButtons();
 </script>
 <script>
 if("serviceWorker" in navigator){addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}))}
