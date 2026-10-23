@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="カエラナイ">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=2">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=3">
 <link rel="icon" href="icon-192.png">
 <title>運命の分岐点</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -165,7 +165,7 @@ section h2{font-size:.95rem;margin:0 0 8px;font-weight:700}
   <section>
     <h2>支払い</h2>
     <div class="chips" id="chips-pay"></div>
-    <form class="add" id="add-pay"><input id="in-pay" placeholder="例：割り勘" maxlength="20"><button>追加</button></form>
+    <form class="add" id="add-pay"><input id="in-pay" placeholder="財布を軽くする人を入力せよ" maxlength="20"><button>追加</button></form>
     <p class="hint" style="margin-top:8px">タップで今日は除外、長押しで削除。</p>
   </section>
 </div>
@@ -180,6 +180,21 @@ let state;
 try{state=JSON.parse(localStorage.getItem("kaerimichi"))}catch(e){}
 if(!state||typeof state!=="object")state={};
 KINDS.forEach(k=>{if(!Array.isArray(state[k]))state[k]=[];state[k].forEach(o=>o.on??=true)});
+// テンプレ（初回だけ入れる。消したものは復活しない）
+const TEMPLATE={
+  plan:["バー","居酒屋","中華","イタリアン","和食","ラーメン","ゲーセン","カラオケ","スロット","運動"],
+  route:["歩け","走れ","バス","タクシー","運転","チャリンコ"]
+};
+const tag=(kind,v)=>{
+  const o={t:v,on:true};
+  if(kind==="plan"&&/飲|酒|ビール|バー|居酒屋|ハシゴ/.test(v))o.drink=true;
+  if(kind==="route"&&/車|運転|バイク/.test(v))o.car=true;
+  return o;
+};
+if(!state.seeded){
+  Object.entries(TEMPLATE).forEach(([k,list])=>list.forEach(v=>{if(!state[k].some(o=>o.t===v))state[k].push(tag(k,v))}));
+  state.seeded=1;
+}
 const save=()=>{try{localStorage.setItem("kaerimichi",JSON.stringify(state))}catch(e){}};
 
 const SPEEDS={slow:{ms:230,t:"ゆっくり"},normal:{ms:140,t:"ふつう"},fast:{ms:85,t:"はやい"}};
@@ -212,7 +227,7 @@ function draw(k){
   const r=R[k],pool=(!r.spinning&&r.frozen)?r.frozen:poolFor(k);
   if(!pool.length){
     r.rows.forEach(d=>d.style.visibility="hidden");
-    r.empty.textContent=state[k].length?"1つ以上オンにしてね":"下から選択肢を追加";
+    r.empty.textContent=state[k].length?"1つ以上オンにしてね":(k==="pay"?"財布を軽くする人を入力せよ":"下から選択肢を追加");
     r.empty.hidden=false;return;
   }
   r.empty.hidden=true;
@@ -364,7 +379,7 @@ renderSpeed();
 /* ---- 選択肢の編集 ---- */
 function render(kind){
   const box=$("chips-"+kind);box.innerHTML="";
-  if(!state[kind].length){const e=document.createElement("span");e.className="empty-note";e.textContent="まだ選択肢がありません。下から追加してね";box.appendChild(e)}
+  if(!state[kind].length){const e=document.createElement("span");e.className="empty-note";e.textContent=kind==="pay"?"財布を軽くする人を入力せよ":"まだ選択肢がありません。下から追加してね";box.appendChild(e)}
   state[kind].forEach((o,i)=>{
     const b=document.createElement("button");
     b.className="chip";b.textContent=o.t;b.setAttribute("aria-pressed",o.on);
@@ -380,10 +395,7 @@ KINDS.forEach(kind=>{
   render(kind);
   $("add-"+kind).addEventListener("submit",e=>{
     e.preventDefault();const v=$("in-"+kind).value.trim();if(!v)return;
-    const o={t:v,on:true};
-    if(kind==="plan"&&/飲|酒|ビール|バー|居酒屋|ハシゴ/.test(v))o.drink=true;
-    if(kind==="route"&&/車|運転|バイク/.test(v))o.car=true;
-    state[kind].push(o);$("in-"+kind).value="";save();render(kind);
+    state[kind].push(tag(kind,v));$("in-"+kind).value="";save();render(kind);
   });
 });
 paintButtons();
