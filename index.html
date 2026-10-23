@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1b2140">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="帰り道">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<title>帰り道ルーレット</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<style>
+html{-webkit-text-size-adjust:100%}
+body{margin:0;padding-top:max(20px,env(safe-area-inset-top,0px))!important}
+button{-webkit-tap-highlight-color:transparent}
+/* Layout: one narrow column, two "reels" like a station departure board, controls below */
+:root{
+  --bg:#eef0f6; --panel:#ffffff; --ink:#1d2340; --muted:#646b8a; --line:#d6d9e6;
+  --lamp:#e8902a; --lamp-ink:#2a1600; --stop:#c43b3b;
+  --display:"Dela Gothic One","Hiragino Sans","Yu Gothic",sans-serif;
+  --body:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12162a; --panel:#1b2140; --ink:#eef0fb; --muted:#9aa1c4; --line:#2e3560;
+  --lamp:#f2a547; --lamp-ink:#2a1600; --stop:#ef7272; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12162a; --panel:#1b2140; --ink:#eef0fb; --muted:#9aa1c4; --line:#2e3560;
+  --lamp:#f2a547; --lamp-ink:#2a1600; --stop:#ef7272; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:460px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+h1{font-family:var(--display);font-weight:400;font-size:1.7rem;margin:0;letter-spacing:.02em;text-wrap:balance}
+.sub{margin:2px 0 0;color:var(--muted);font-size:.9rem}
+.board{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;display:grid;gap:12px}
+.reel{display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px}
+.reel-label{font-size:.75rem;letter-spacing:.12em;color:var(--muted);grid-column:1/-1}
+.window{min-width:0;border-radius:10px;background:var(--bg);border:1px solid var(--line);padding:14px 14px;
+  font-family:var(--display);font-size:1.45rem;line-height:1.3;min-height:3.3rem;display:flex;align-items:center}
+.window.locked{border-color:var(--lamp);box-shadow:inset 0 0 0 1px var(--lamp)}
+.lock{border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:10px;padding:10px 12px;font:inherit;font-size:.8rem;cursor:pointer;min-height:3.3rem}
+.lock[aria-pressed="true"]{background:var(--lamp);color:var(--lamp-ink);border-color:var(--lamp)}
+.spin{font-family:var(--display);font-size:1.3rem;background:var(--lamp);color:var(--lamp-ink);border:0;border-radius:12px;padding:16px;cursor:pointer;width:100%}
+.spin:active{transform:translateY(1px)}
+.note{font-size:.82rem;color:var(--muted);margin:0}
+.note b{color:var(--stop)}
+section h2{font-size:.95rem;margin:0 0 8px;font-weight:700}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:999px;padding:6px 12px;font:inherit;font-size:.88rem;cursor:pointer}
+.chip[aria-pressed="false"]{color:var(--muted);text-decoration:line-through;background:transparent}
+.add{display:flex;gap:8px;margin-top:10px}
+.add input{flex:1;min-width:0;font:inherit;padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
+.add button{font:inherit;padding:8px 14px;border-radius:8px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer}
+.hint{font-size:.8rem;color:var(--muted);margin:6px 0 0}
+button:focus-visible,input:focus-visible{outline:2px solid var(--lamp);outline-offset:2px}
+@media (prefers-reduced-motion: reduce){.spin:active{transform:none}}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>帰り道ルーレット</h1>
+    <p class="sub">今日の過ごし方と帰り方、迷ったら回すだけ。</p>
+  </header>
+
+  <div class="board">
+    <div class="reel">
+      <span class="reel-label">どう過ごす</span>
+      <div class="window" id="w-plan" aria-live="polite">飲んで帰る</div>
+      <button class="lock" id="lock-plan" aria-pressed="false">固定</button>
+    </div>
+    <div class="reel">
+      <span class="reel-label">どう帰る</span>
+      <div class="window" id="w-route" aria-live="polite">歩いて帰る</div>
+      <button class="lock" id="lock-route" aria-pressed="false">固定</button>
+    </div>
+    <button class="spin" id="spin">回す</button>
+    <p class="note"><b>飲んだら車はナシ。</b>飲みが出たときは車を自動で外します。</p>
+  </div>
+
+  <section>
+    <h2>どう過ごす</h2>
+    <div class="chips" id="chips-plan"></div>
+    <form class="add" id="add-plan"><input id="in-plan" placeholder="例：サウナ寄って帰る" maxlength="20"><button>追加</button></form>
+  </section>
+
+  <section>
+    <h2>どう帰る</h2>
+    <div class="chips" id="chips-route"></div>
+    <form class="add" id="add-route"><input id="in-route" placeholder="例：電車で帰る" maxlength="20"><button>追加</button></form>
+    <p class="hint">タップで今日は除外。長押しで削除（追加したものだけ）。</p>
+  </section>
+</div>
+
+<script>
+const DEFAULT={
+  plan:[{t:"飲んで帰る",drink:true},{t:"ご飯だけ食べて帰る"},{t:"遊んで帰る"},{t:"家でご飯"}],
+  route:[{t:"歩いて帰る"},{t:"タクシー"},{t:"車で帰る",car:true}]
+};
+let state;
+try{state=JSON.parse(localStorage.getItem("kaerimichi"))}catch(e){}
+if(!state||!state.plan||!state.route){state=JSON.parse(JSON.stringify(DEFAULT));}
+state.plan.forEach(o=>o.on??=true);state.route.forEach(o=>o.on??=true);
+const save=()=>{try{localStorage.setItem("kaerimichi",JSON.stringify(state))}catch(e){}};
+const locks={plan:false,route:false};
+const $=id=>document.getElementById(id);
+
+function render(kind){
+  const box=$("chips-"+kind);box.innerHTML="";
+  state[kind].forEach((o,i)=>{
+    const b=document.createElement("button");
+    b.className="chip";b.textContent=o.t;b.setAttribute("aria-pressed",o.on);
+    b.onclick=()=>{o.on=!o.on;save();render(kind)};
+    let timer;
+    const isDefault=DEFAULT[kind].some(d=>d.t===o.t);
+    if(!isDefault){
+      b.addEventListener("pointerdown",()=>{timer=setTimeout(()=>{state[kind].splice(i,1);save();render(kind);timer=null},600)});
+      ["pointerup","pointerleave"].forEach(ev=>b.addEventListener(ev,()=>clearTimeout(timer)));
+      b.oncontextmenu=e=>e.preventDefault();
+    }
+    box.appendChild(b);
+  });
+}
+["plan","route"].forEach(kind=>{
+  render(kind);
+  $("add-"+kind).addEventListener("submit",e=>{
+    e.preventDefault();const v=$("in-"+kind).value.trim();if(!v)return;
+    const o={t:v,on:true};
+    if(kind==="plan"&&/飲|酒|ビール|バー|居酒屋/.test(v))o.drink=true;
+    if(kind==="route"&&/車|運転|バイク/.test(v))o.car=true;
+    state[kind].push(o);$("in-"+kind).value="";save();render(kind);
+  });
+  $("lock-"+kind).onclick=()=>{
+    locks[kind]=!locks[kind];
+    $("lock-"+kind).setAttribute("aria-pressed",locks[kind]);
+    $("w-"+kind).classList.toggle("locked",locks[kind]);
+  };
+});
+
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const cur={plan:null,route:null};
+const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function animate(kind,pool,final){
+  return new Promise(res=>{
+    const w=$("w-"+kind);
+    if(reduce){w.textContent=final.t;return res()}
+    let n=0;const total=kind==="plan"?14:20;
+    const tick=()=>{
+      w.textContent=pick(pool).t;n++;
+      if(n<total)setTimeout(tick,40+n*n*0.6);else{w.textContent=final.t;res()}
+    };tick();
+  });
+}
+
+$("spin").onclick=async()=>{
+  const btn=$("spin");
+  const plans=state.plan.filter(o=>o.on);
+  let routes=state.route.filter(o=>o.on);
+  if(!plans.length||!routes.length){$("w-plan").textContent="選択肢を1つ以上オンにしてね";return}
+  btn.disabled=true;
+  const plan=locks.plan&&cur.plan?cur.plan:pick(plans);
+  if(plan.drink)routes=routes.filter(o=>!o.car);
+  if(!routes.length)routes=[{t:"歩くかタクシーで"}];
+  let route=locks.route&&cur.route?cur.route:pick(routes);
+  if(plan.drink&&route.car)route=pick(routes);
+  const jobs=[];
+  if(!(locks.plan&&cur.plan))jobs.push(animate("plan",plans,plan));
+  if(!(locks.route&&cur.route)||route!==cur.route)jobs.push(animate("route",routes,route));
+  await Promise.all(jobs);
+  cur.plan=plan;cur.route=route;btn.disabled=false;
+};
+</script>
+<script>
+if("serviceWorker" in navigator){addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}))}
+</script>
+</body>
+</html>
